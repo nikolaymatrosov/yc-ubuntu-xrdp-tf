@@ -1,41 +1,36 @@
-data "yandex_compute_image" "ubuntu-20-04" {
-  family = "ubuntu-2004-lts"
-}
-
-data "template_file" "cloud_init" {
-  template = file("cloud-init.tmpl.yaml")
-  vars = {
-    user = var.user
-    ssh_key = file(var.public_key_path)
-  }
+data "yandex_compute_image" "ubuntu" {
+  family = "ubuntu-2204-lts"
 }
 
 resource "yandex_compute_instance" "xrdp-vm" {
-  name = "xrdp"
-  folder_id = var.folder_id
-  platform_id = "standard-v2"
-  zone = "ru-central1-a"
+  name        = "xrdp"
+  folder_id   = var.folder_id
+  platform_id = "standard-v3"
+  zone        = "ru-central1-a"
 
   resources {
-    cores = 4
+    cores  = 4
     memory = 8
 
   }
   boot_disk {
     mode = "READ_WRITE"
     initialize_params {
-      image_id = data.yandex_compute_image.ubuntu-20-04.id
-      type = "network-ssd"
-      size = 100
+      image_id = data.yandex_compute_image.ubuntu.id
+      type     = "network-ssd"
+      size     = 100
     }
   }
   network_interface {
     subnet_id = yandex_vpc_subnet.xrdp-subnet-a.id
-    nat = true
+    nat       = true
   }
 
   metadata = {
-    user-data = data.template_file.cloud_init.rendered
+    user-data = templatefile("cloud-init.tmpl.yaml", {
+      user = var.user,
+      ssh_key = file(var.public_key_path)
+    })
     serial-port-enable = 1
   }
 
@@ -59,7 +54,7 @@ resource "yandex_compute_instance" "xrdp-vm" {
   }
 
   timeouts {
-    create = "10m"
+    create = "15m"
   }
 }
 
